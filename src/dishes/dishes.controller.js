@@ -20,9 +20,7 @@ function dishExists(req, res, next) {
 function validateBody(req, res, next) {
   const { data } = req.body;
   const dishKeys = Object.keys(dishes[0]).splice(1);
-  const dishKeysString = dishKeys.join(",");
   const dataKeys = Object.keys(data);
-  const dataKeysString = dataKeys.join(",");
 
   //error messages
   const nameMissing = { status: 400, message: "Dish must include a name" };
@@ -40,13 +38,48 @@ function validateBody(req, res, next) {
     message: "Dish must include a image_url",
   };
 
-  if (dataKeysString === dishKeysString) {
-    console.log("they are");
+  //list the missing keys and
+  let inCurrent = {};
+  let missingKeys = [];
+  for (let key of dataKeys) inCurrent[key] = true;
+  for (let key of dishKeys) if (!inCurrent[key]) missingKeys.push(key);
+
+  //check if keys are all there and have the desired value
+  if (missingKeys.length === 0) {
+    if (data.name === "") {
+      next(nameMissing);
+    } else if (data.description === "") {
+      next(descriptionMissing);
+    } else if (data.price === undefined) {
+      next(priceMissing);
+    } else if (!Number.isInteger(data.price) || data.price <= 0) {
+      next(priceWrong);
+    } else if (data.image_url === "") {
+      next(imageMissing);
+    } else next();
   } else {
-    let inCurrent = {};
-    let missingKeys = [];
-    for (let key of dataKeys) inCurrent[key] = true;
-    for (let key of dishKeys) if (!inCurrent[key]) missingKeys.push(key);
+    if (missingKeys.includes("name")) {
+      next(nameMissing);
+    } else if (missingKeys.includes("description")) {
+      next(descriptionMissing);
+    } else if (missingKeys.includes("price")) {
+      next(priceMissing);
+    } else if (missingKeys.includes("image_url")) {
+      next(imageMissing);
+    }
+  }
+}
+
+function validateId(req, res, next) {
+  const { data } = req.body;
+
+  if (Object.keys(data).includes("id") && data.id !== res.locals.dish.id) {
+    next({
+      status: 404,
+      message: `Dish id does not match route id. Dish: ${id}, Route: ${dishId}`,
+    });
+  } else {
+    next();
   }
 }
 
@@ -59,15 +92,37 @@ function read(req, res, next) {
 }
 
 function create(req, res, next) {
-  const { data: dish } = req.body;
+  const { data } = req.body;
+  const newDish = {
+    id: nextId(),
+    name: data.name,
+    description: data.description,
+    price: data.price,
+    image_url: data.image_url,
+  };
+  dishes.push(newDish);
+  res.status(201).json({ data: newDish });
   console.log("dish", dish);
 }
 
-function update(req, res, next) {}
+function update(req, res, next) {
+  let existingDish = res.locals.dish;
+  const { data } = req.body;
+  const updatedDish = {
+    ...existingDish,
+    name: data.name,
+    description: data.description,
+    price: data.price,
+    image_url: data.image_url,
+  };
+  existingDish = data;
+  res.json({ data: updatedDish });
+  console.log(dishes);
+}
 
 module.exports = {
   list,
   read: [dishExists, read],
   create: [validateBody, create],
-  update: [dishExists, validateBody, update],
+  update: [dishExists, validateBody, validateId, update],
 };
