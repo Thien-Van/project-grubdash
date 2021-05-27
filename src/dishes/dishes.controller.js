@@ -79,6 +79,7 @@ function validateId(req, res, next) {
       message: `Dish id does not match route id. Dish: ${id}, Route: ${dishId}`,
     });
   } else {
+    res.locals.newBody = data;
     next();
   }
 }
@@ -107,17 +108,20 @@ function create(req, res, next) {
 
 function update(req, res, next) {
   let existingDish = res.locals.dish;
-  const { data } = req.body;
+  const newBody = res.locals.newBody;
   const updatedDish = {
     ...existingDish,
-    name: data.name,
-    description: data.description,
-    price: data.price,
-    image_url: data.image_url,
+    name: newBody.name,
+    description: newBody.description,
+    price: newBody.price,
+    image_url: newBody.image_url,
   };
-  existingDish = data;
+  existingDish.name = newBody.name;
+  existingDish.description = newBody.description;
+  existingDish.price = newBody.price;
+  existingDish.image_url = newBody.image_url;
+
   res.json({ data: updatedDish });
-  console.log(dishes);
 }
 
 module.exports = {
