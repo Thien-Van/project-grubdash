@@ -18,10 +18,6 @@ function dishExists(req, res, next) {
 }
 
 function validateBody(req, res, next) {
-  const { data } = req.body;
-  const dishKeys = Object.keys(dishes[0]).splice(1);
-  const dataKeys = Object.keys(data);
-
   //error messages
   const nameMissing = { status: 400, message: "Dish must include a name" };
   const descriptionMissing = {
@@ -38,7 +34,11 @@ function validateBody(req, res, next) {
     message: "Dish must include a image_url",
   };
 
-  //list the missing keys and
+  const { data } = req.body;
+  const dishKeys = Object.keys(dishes[0]).splice(1);
+  const dataKeys = Object.keys(data);
+
+  //list the missing keys
   let inCurrent = {};
   let missingKeys = [];
   for (let key of dataKeys) inCurrent[key] = true;
@@ -50,8 +50,6 @@ function validateBody(req, res, next) {
       next(nameMissing);
     } else if (data.description === "") {
       next(descriptionMissing);
-    } else if (data.price === undefined) {
-      next(priceMissing);
     } else if (!Number.isInteger(data.price) || data.price <= 0) {
       next(priceWrong);
     } else if (data.image_url === "") {
@@ -103,7 +101,6 @@ function create(req, res, next) {
   };
   dishes.push(newDish);
   res.status(201).json({ data: newDish });
-  console.log("dish", dish);
 }
 
 function update(req, res, next) {
