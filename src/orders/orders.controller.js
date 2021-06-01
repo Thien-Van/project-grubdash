@@ -10,6 +10,7 @@ const nextId = require("../utils/nextId");
 function orderExists(req, res, next) {
   const { orderId } = req.params;
   const foundOrder = orders.find((order) => order.id === orderId);
+  console.log(orderId);
   if (foundOrder === undefined) {
     next({ status: 404, message: "No matching order is found." });
   }
@@ -86,6 +87,38 @@ function validateBody(req, res, next) {
   }
 }
 
+function validateId(req, res, next) {
+  const { data } = req.body;
+
+  console.log(Object.keys(data));
+  if (Object.keys(data).includes("id") && data.id !== res.locals.order.id) {
+    next({
+      status: 404,
+      message: `Order id does not match route id. Order: ${id}, Route: ${orderId}.`,
+    });
+  } else {
+    next();
+  }
+}
+
+function validateStatus(req, res, next) {
+  const { data } = req.body;
+  if (!Object.keys(data).includes("status") || data.status === "") {
+    next({
+      status: 404,
+      message: `Order must have a status of pending, preparing, out-for-delivery, delivered`,
+    });
+  } else if (res.locals.order.status === "delivered") {
+    next({
+      status: 404,
+      message: `A delivered order cannot be changed`,
+    });
+  } else {
+    res.locals.newBody = data;
+    next();
+  }
+}
+
 function list(req, res, next) {
   res.json({ data: orders });
 }
@@ -106,17 +139,39 @@ function create(req, res, next) {
     dishes: data.dishes,
   };
   orders.push(newOrder);
+  console.log(orders);
   res.status(201).json({ data: newOrder });
 }
 
-function update(req, res, next) {}
+function update(req, res, next) {
+  let existingOrder = res.locals.order;
+  const newBody = res.locals.newBody;
+  const updatedOrder = {
+    ...existingOrder,
+    deliverTo: newBody.deliverTo,
+    mobileNumber: newBody.mobileNumber,
+    status: newBody.status,
+    dishes: newBody.dishes,
+  };
+  deliverTo = newBody.deliverTo;
+  mobileNumber = newBody.mobileNumber;
+  status = newBody.status;
+  dishes = newBody.dishes;
 
-function destroy(req, res, next) {}
+  res.json({ data: updatedOrder });
+}
+
+function destroy(req, res, next) {
+  const { orderId } = req.params;
+  const index = orders.findIndex((order) => order.id === Number(orderId));
+  orders.splice(index, 1);
+  res.sendStatus(204);
+}
 
 module.exports = {
   list,
   read: [orderExists, read],
   create: [validateBody, create],
-  update: [orderExists, validateBody, update],
+  update: [orderExists, validateBody, validateId, validateStatus, update],
   delete: [orderExists, destroy],
 };
