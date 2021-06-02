@@ -153,10 +153,10 @@ function update(req, res, next) {
     status: newBody.status,
     dishes: newBody.dishes,
   };
-  deliverTo = newBody.deliverTo;
-  mobileNumber = newBody.mobileNumber;
-  status = newBody.status;
-  dishes = newBody.dishes;
+  existingOrder.deliverTo = newBody.deliverTo;
+  existingOrder.mobileNumber = newBody.mobileNumber;
+  existingOrder.status = newBody.status;
+  existingOrder.dishes = newBody.dishes;
 
   res.json({ data: updatedOrder });
 }
